@@ -18,7 +18,7 @@ final class MessengerQueryBus implements QueryBus
         private MessageBusInterface $messageBus
     ) {}
 
-    public function dispatch(Query $query): iterable
+    public function dispatch(Query $query): mixed
     {
         try {
             $envelope = $this->messageBus->dispatch($query);
@@ -27,7 +27,7 @@ final class MessengerQueryBus implements QueryBus
         }
 
         $stamp = $envelope->last(HandledStamp::class);
-        if (! $stamp instanceof HandledStamp || ! is_iterable($stamp->getResult())) {
+        if (! $stamp instanceof HandledStamp) {
             throw new InvalidResultException($query);
         }
 

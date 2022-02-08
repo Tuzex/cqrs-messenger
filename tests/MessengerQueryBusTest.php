@@ -9,7 +9,6 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\NoHandlerForMessageException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
-use Tuzex\Cqrs\Messenger\Exception\InvalidResultException;
 use Tuzex\Cqrs\Messenger\Exception\NoHandlerForQueryException;
 use Tuzex\Cqrs\Messenger\MessengerQueryBus;
 use Tuzex\Cqrs\Query;
@@ -21,10 +20,12 @@ final class MessengerQueryBusTest extends TestCase
     {
         $query = $this->mockQuery();
         $queryBus = new MessengerQueryBus(
-            $this->mockMessageBus($query, [$this->mockHandledStamp()])
+            $this->mockMessageBus($query, [
+                new HandledStamp('', QueryHandler::class),
+            ])
         );
 
-        $this->assertIsIterable($queryBus->dispatch($query));
+        $this->assertIsString($queryBus->dispatch($query));
     }
 
     public function testItThrowsExceptionIfQueryHandlerNotExists(): void
@@ -34,32 +35,6 @@ final class MessengerQueryBusTest extends TestCase
 
         $this->expectException(NoHandlerForQueryException::class);
         $queryBus->dispatch($query);
-    }
-
-    /**
-     * @dataProvider provideInvalidStamps
-     */
-    public function testItThrowsExceptionIfQueryResultIsInvalid(array $stamps): void
-    {
-        $query = $this->mockQuery();
-        $queryBus = new MessengerQueryBus($this->mockMessageBus($query, $stamps));
-
-        $this->expectException(InvalidResultException::class);
-        $queryBus->dispatch($query);
-    }
-
-    public function provideInvalidStamps(): array
-    {
-        return [
-            'not-exists' => [
-                'stamps' => [],
-            ],
-            'invalid-type' => [
-                'stamps' => [
-                    $this->mockHandledStamp(valid: false),
-                ],
-            ],
-        ];
     }
 
     private function mockQuery(): Query
@@ -81,10 +56,5 @@ final class MessengerQueryBusTest extends TestCase
         }
 
         return $messageBus;
-    }
-
-    private function mockHandledStamp(bool $valid = true): HandledStamp
-    {
-        return new HandledStamp($valid ? [] : '', QueryHandler::class);
     }
 }
